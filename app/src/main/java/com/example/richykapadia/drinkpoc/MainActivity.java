@@ -19,16 +19,26 @@ public class MainActivity extends ActionBarActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        GLSurfaceView view = new GLSurfaceView(this);
         DrinkRenderer renderer = new DrinkRenderer();
-        view.setRenderer( renderer );
         setContentView(R.layout.activity_main);
 
         mWorldView = (GLSurfaceView) findViewById(R.id.world);
         mWorldView.setRenderer(renderer);
 
-
     }
+
+    @Override
+    protected void onPause(){
+        super.onPause();
+        mWorldView.onPause();
+    }
+
+    @Override
+    protected void onResume(){
+        super.onResume();
+        mWorldView.onResume();
+    }
+
 
 
     @Override

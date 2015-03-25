@@ -16,11 +16,14 @@ import org.jbox2d.particle.ParticleGroupDef;
 import org.jbox2d.particle.ParticleType;
 
 
+import java.nio.ByteBuffer;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 import android.opengl.GLES20;
+import android.opengl.GLU;
+
 import static android.opengl.GLES20.*;
 
 
@@ -31,7 +34,7 @@ public class DrinkRenderer implements GLSurfaceView.Renderer {
 
     private World mWorld = null;
     private Body groundBody;
-    private ParticleSystem mParticleSystem = null;
+    private ParticleGroup mParticleGroup;
     private Body mBoundaryBody = null;
     private ReentrantLock mWorldLock = new ReentrantLock();
     private static final float WORLD_HEIGHT = 3f;
@@ -44,32 +47,40 @@ public class DrinkRenderer implements GLSurfaceView.Renderer {
 
     private static final DrinkRenderer _instance = new DrinkRenderer();
 
+    private ParticleSystem mParticleSystem;
 
+    private Water mWater;
 
 
 
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
         // Set the background frame color
-        GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        gl.glDisable(GL10.GL_DITHER);
+        gl.glHint(GL10.GL_PERSPECTIVE_CORRECTION_HINT, GL10.GL_FASTEST);
+        gl.glClearColor(1, 1, 1, 1);
+        gl.glClearDepthf(1f);
+
+        mWater = new Water();
+
         reset(); //resets the drink
         //create a body of water
     }
 
-    @Override
-    public void onSurfaceChanged(GL10 gl, int width, int height) {
-        GLES20.glViewport(0, 0, width, height);
-    }
 
     @Override
     public void onDrawFrame(GL10 gl) {
+        // Continuously called by the gl surface
         // Redraw background color
-        GLES20.glClearColor(1, 1, 1, 1);
-        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
-
+        gl.glClear(GL10.GL_COLOR_BUFFER_BIT | GL10.GL_DEPTH_BUFFER_BIT);
+        mWater.draw();
     }
 
-
+    @Override
+    public void onSurfaceChanged(GL10 gl, int width, int height) {
+        //This method is called when the view goes from landscape -> portrait or vice versa
+        //Not needed for this app
+    }
 
     private void deleteWorld() {
         World world = acquireWorld();
@@ -80,7 +91,7 @@ public class DrinkRenderer implements GLSurfaceView.Renderer {
             }
             if (world != null) {
                 mWorld = null;
-                mParticleSystem = null;
+                mParticleGroup = null;
             }
         } finally {
             releaseWorld();
@@ -123,7 +134,9 @@ public class DrinkRenderer implements GLSurfaceView.Renderer {
             c.b = 80;
             c.a = 80;
             groupDef.color = c;
-            ParticleGroup group = mWorld.createParticleGroup(groupDef);
+            mParticleGroup = mWorld.createParticleGroup(groupDef);
+            mParticleSystem = new ParticleSystem(mWorld);
+
 
         } finally {
             releaseWorld();
@@ -141,6 +154,19 @@ public class DrinkRenderer implements GLSurfaceView.Renderer {
         shape.set(vertices, 4);
         groundBody.createFixture(shape, 0.0f);
 
+    }
+
+    public static int loadShader(int type, String shaderCode){
+
+        // create a vertex shader type (GLES20.GL_VERTEX_SHADER)
+        // or a fragment shader type (GLES20.GL_FRAGMENT_SHADER)
+        int shader = GLES20.glCreateShader(type);
+
+        // add the source code to the shader and compile it
+        GLES20.glShaderSource(shader, shaderCode);
+        GLES20.glCompileShader(shader);
+
+        return shader;
     }
 
     public static DrinkRenderer getInstance(){
@@ -188,4 +214,6 @@ public class DrinkRenderer implements GLSurfaceView.Renderer {
 //    public Activity getCurrentActivity() {
 //        return mActivity;
 //    }
+
+
 }
